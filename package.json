@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/main.ts --bundle --outfile=dist/main.js",
-    "dev": "esbuild src/main.ts --bundle --outfile=dist/main.js --watch",
+    "dev": "esbuild src/main.ts --bundle --outfile=dist/main.js --servedir=. --watch",
     "check": "tsc --noEmit"
   },
   "keywords": [],
