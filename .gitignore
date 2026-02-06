@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# optional: cache / temp
+.esbuild*
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
