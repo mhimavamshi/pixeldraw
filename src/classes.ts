@@ -156,7 +156,7 @@ class Editor {
         this.drawing = false; // for tracking moving mouse 
     }
 
-
+    // this is just a tool effect, i just kept it before tool to check if pixel will be filled! move to a tool
     handleMouseClick(event: PointerEvent) {
         const rect = constants.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -219,6 +219,14 @@ class Editor {
         colorpicker.register(this.tools);
         let eraser = new Eraser();
         eraser.register(this.tools);
+    }
+
+    undo() {
+
+    }
+
+    redo() {
+
     }
 
     start() {
