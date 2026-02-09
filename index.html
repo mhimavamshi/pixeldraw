@@ -8,8 +8,12 @@
     <title>Pixel Draw</title>
 </head>
 <body>
-    <div class="container">
-        <canvas id="drawArea" width="100" height="100"></canvas>
+    <div class="CanvasContainer">
+        <canvas id="drawArea" width="256" height="256"></canvas>
+    </div>
+    <div class="ToolsContainer">
+        <input type="color" id="colorPicker" name="colorpicked" value="#000000">
+        <img src="/images/color-picker.png" alt="color picker tool" width="30" height="30">
     </div>
 </body>
 <script type="module" src="dist/main.js"></script>
