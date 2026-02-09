@@ -1,4 +1,5 @@
 const CANVAS_ID = "#drawArea";
+const COLOR_PICKER_ID = "#colorPicker";
 
 type CanvasBundle = {
     canvas: HTMLCanvasElement,
@@ -6,12 +7,12 @@ type CanvasBundle = {
 }
 
 function getCanvasBundle(): CanvasBundle {
-    let canvas = document.querySelector(CANVAS_ID) as (HTMLCanvasElement | null); 
-    if (canvas == null) { 
+    let canvas = document.querySelector(CANVAS_ID) as (HTMLCanvasElement | null);
+    if (canvas == null) {
         throw new Error(`coudln't load ${CANVAS_ID} as canvas`);
     }
     let ctx = canvas.getContext("2d");
-    if (ctx == null) { 
+    if (ctx == null) {
         throw new Error(`coudln't load 2d context from ${CANVAS_ID} canvas`);
     }
     return {
@@ -20,10 +21,25 @@ function getCanvasBundle(): CanvasBundle {
     }
 }
 
-const {canvas, ctx} = getCanvasBundle();
+type ElementInput = {
+    id: string,
+    description: string
+}
 
-const PIXEL_WIDTH = 20;
-const PIXEL_HEIGHT = 20;
+function getHTMLElement(input: ElementInput): HTMLInputElement {
+    let element = document.querySelector(input.id) as (HTMLInputElement | null);
+    if (element == null) {
+        throw new Error(`couldn't load ${input.id} as ${input.description}`);
+    }
+    return element;
+}
+
+const colorPicker = getHTMLElement({ id: COLOR_PICKER_ID, description: "colorPicker tool" });
+
+const { canvas, ctx } = getCanvasBundle();
+
+const PIXEL_WIDTH = 16;
+const PIXEL_HEIGHT = 16;
 const PIXEL_AREA = PIXEL_WIDTH * PIXEL_HEIGHT;
 const CANVAS_AREA = canvas.width * canvas.height;
 
@@ -36,4 +52,4 @@ console.info(`canvas width: ${canvas.width}, canvas height: ${canvas.height}`);
 console.info(`pixel width: ${PIXEL_WIDTH}, pixel height: ${PIXEL_HEIGHT}`);
 console.info(`total number of pixels: ${NUM_PIXELS}`);
 
-export { CANVAS_ID, NUM_PIXELS, PIXEL_WIDTH, PIXEL_HEIGHT, canvas, ctx };
+export { CANVAS_ID, NUM_PIXELS, NUM_PIXELS_X, NUM_PIXELS_Y, PIXEL_WIDTH, PIXEL_HEIGHT, canvas, ctx, colorPicker };
