@@ -37,6 +37,7 @@ class Pixel {
     erase(ctx: CanvasRenderingContext2D) {
         if(!this.empty) {
             ctx.clearRect(this.x, this.y, this.width, this.height);
+            this.draw(ctx);
             this.empty = true;
         }
     }
