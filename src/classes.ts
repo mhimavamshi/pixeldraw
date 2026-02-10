@@ -1,7 +1,5 @@
-import type { Point, GridInput } from "./types";
+import type { Point, GridInput, ToolRegistry, ToolType, GridToolType } from "./types";
 import * as constants from "./constants";
-
-
 
 class Pixel {
     width: number;
@@ -39,6 +37,7 @@ class Pixel {
     erase(ctx: CanvasRenderingContext2D) {
         if(!this.empty) {
             ctx.clearRect(this.x, this.y, this.width, this.height);
+            this.empty = true;
         }
     }
 
@@ -81,50 +80,104 @@ class Grid {
     click(pt: Point) {
         let whichX = Math.floor(pt.x / constants.PIXEL_WIDTH);
         let whichY = Math.floor(pt.y / constants.PIXEL_HEIGHT);
-        let index = (whichY * constants.NUM_PIXELS_Y) + whichX;
+        let index = (whichY * constants.NUM_PIXELS_X) + whichX;
         console.debug(`whichX = ${whichX}, whichY = ${whichY}, index = ${index}`);
 
         let pixel = this.pixels[index];
+        if(!pixel) return;
         pixel.fill(constants.ctx, this.color);
     }
 
+    clear(pt: Point) {
+        let whichX = Math.floor(pt.x / constants.PIXEL_WIDTH);
+        let whichY = Math.floor(pt.y / constants.PIXEL_HEIGHT);
+        let index = (whichY * constants.NUM_PIXELS_X) + whichX;
+        console.debug(`whichX = ${whichX}, whichY = ${whichY}, index = ${index}`);
+
+        let pixel = this.pixels[index];
+        if(!pixel) return;
+        pixel.erase(constants.ctx);
+    }
+
 }
-
-
-abstract class Tool {
+abstract class Tool implements ToolType {
     description: string;
     name: string;
-    // im thinking, should we dispatch events and each tool attaches their own event listeners
-    // or should it be, like now, editor manages each events and calls tools (maybe a generic function in future)
 
     constructor() {
         this.name = "Primitive";
         this.description = "A Generic Tool";
     }
 
-    register(registry: Record<string, Tool>) {
+    register(registry: Record<string, ToolType>) {
         if(this.name in registry) {
             console.debug(`tool already exists, overriding: ${this.name}, ${this.description} `);
         }
         registry[this.name] = this;
     }
 
-    abstract effect(gridInput: GridInput): void;
+    abstract effect(grid: Grid): void;
 
 }
 
-class Eraser extends Tool {
+abstract class GridTool extends Tool implements GridToolType {
+    protected active = false;
+    protected lastX = 0;
+    protected lastY = 0;
 
+    protected updatePosition(event: PointerEvent) {
+        const rect = constants.canvas.getBoundingClientRect();
+        this.lastX = event.clientX - rect.left;
+        this.lastY = event.clientY - rect.top;
+    }
+
+    pointerDown({ event, grid }: GridInput) {
+        const e = event as PointerEvent;
+        if (e.button !== 0) return;
+        this.active = true;
+        constants.canvas.setPointerCapture(e.pointerId);
+        this.pointerMove?.({ event: e, grid: grid });
+    }
+
+    pointerUp({ event }: GridInput) {
+        const e = event as PointerEvent;
+        this.active = false;
+        constants.canvas.releasePointerCapture(e.pointerId);
+    }
+
+    pointerCancel() {
+        this.active = false;
+    }
+
+    pointerMove({ event, grid }: GridInput) {
+        if (!this.active) return;
+        this.updatePosition(event as PointerEvent);
+        this.effect(grid);
+    }
+}
+
+class Pen extends GridTool {
+    constructor() {
+        super();
+        this.name = "Pen";
+        this.description = "Pen Tool";
+    }
+
+    effect(grid: Grid) {
+        grid.click({ x: this.lastX, y: this.lastY });
+    }
+}
+
+class Eraser extends GridTool {
     constructor() {
         super();
         this.name = "Eraser";
         this.description = "Eraser Tool";
     }
 
-    effect(grid: GridInput): void {
-        // TODO: need some tool state management
+    effect(grid: Grid) {
+        grid.clear({ x: this.lastX, y: this.lastY });
     }
-
 }
 
 class ColorPicker extends Tool {
@@ -138,104 +191,156 @@ class ColorPicker extends Tool {
         this.pick = "#000000";
     }
 
-    effect(gridInput: GridInput) {
-        this.pick = gridInput.metadata["color"];
-        gridInput.grid.color = this.pick;
+    effect(grid: Grid) {
+        grid.color = this.pick;
+    }
+
+    pickColor(gridInput: GridInput) {
+        let colorInput = gridInput.event.target as HTMLInputElement;
+        this.pick = colorInput.value;
+        this.effect(gridInput.grid);
     }
 
 }
 
 class Editor {
     grid: Grid;
-    tools: Record<string, Tool>;
-    drawing: boolean;
+    toolManager: ToolManager;
     
     constructor() {
         this.grid = new Grid();
-        this.tools = {};
-        this.drawing = false; // for tracking moving mouse 
-    }
-
-    // this is just a tool effect, i just kept it before tool to check if pixel will be filled! move to a tool
-    handleMouseClick(event: PointerEvent) {
-        const rect = constants.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        console.log("Click coordinates: X=" + x + ", Y=" + y);
-
-        this.grid.click({x: x, y: y});
-    }
-
-    handleColorChange(event: Event) {
-        let colorpicker = this.tools["Color Picker"] as ColorPicker;
-        let colorInput = event.target as HTMLInputElement;
-        // it would be cool if some method of colorpicker that returns a list of what to call or takes super set of all arguments
-        // and sets up everything before calling effect so i dont have to do setColor or some other functions before calling effect
-        colorpicker.effect({grid: this.grid, metadata: {"color": colorInput.value}});
-    }
-
-    setupEvents() {
-        constants.canvas.addEventListener('click', (event: PointerEvent)=>{
-            this.handleMouseClick(event);
-        }, false);
-
-        constants.colorPicker.addEventListener("change", (event: Event)=>{
-            this.handleColorChange(event);
-        }, false);
-
-        // we also need to keep track of which tools are enabled or disabled, i.e. state of each tool
-        // and consider it before applying effects to grid.
-
-        constants.canvas.addEventListener("pointerdown", (event: PointerEvent)=>{
-            if (event.button !== 0) return; 
-            this.drawing = true;
-
-            constants.canvas.setPointerCapture(event.pointerId);
-
-            this.handleMouseClick(event);
-        });
-
-        constants.canvas.addEventListener("pointermove", (event: PointerEvent) => {
-            if (!this.drawing) return;
-            this.handleMouseClick(event);
-        });
-
-        constants.canvas.addEventListener("pointerup", (event: PointerEvent) => {
-            if (event.button !== 0) return;
-            this.drawing = false;
-            constants.canvas.releasePointerCapture(event.pointerId);
-        });
-
-        constants.canvas.addEventListener("pointercancel", () => {
-            this.drawing = false;
-        });
-
-    }
-
-    setupTools() {
-        // if i could iterate over all children of tools and call register it'll be cool, no registering each
-        let colorpicker = new ColorPicker();
-        colorpicker.register(this.tools);
-        let eraser = new Eraser();
-        eraser.register(this.tools);
-    }
-
-    undo() {
-
-    }
-
-    redo() {
-
+        this.toolManager = new ToolManager(this.grid);
     }
 
     start() {
-        this.setupTools();
-        this.setupEvents();
         this.grid.draw(constants.ctx);
     }
 
 }
 
 
-export { Editor, Grid };
+class ToolManager {
+
+    registry: ToolRegistry;
+    activeTool: GridToolType | null;
+    activeToolUIElement: HTMLInputElement | null;
+    grid: Grid;
+
+    constructor(grid: Grid) {
+        this.registry = {};
+        this.setupTools();
+        this.setupEvents();
+        this.activeTool = null;
+        this.activeToolUIElement = null;
+        this.grid = grid;
+    }
+
+    handlePointerCancel(event: PointerEvent) {
+        let tool = this.activeTool;
+        if(tool === null) {
+            return;
+        }
+        tool.pointerCancel?.({grid: this.grid, event: event});
+    }
+
+    handlePointerDown(event: PointerEvent) {
+        let tool = this.activeTool;
+        if(tool === null) {
+            return;
+        }
+        tool.pointerDown?.({grid: this.grid, event: event});
+    }
+
+    handlePointerMove(event: PointerEvent) {
+        let tool = this.activeTool;
+        if(tool === null) {
+            return;
+        }
+        tool.pointerMove({grid: this.grid, event: event});
+    }
+
+    handleColorChange(event: Event) {
+        let tool = this.registry["Color Picker"] as ColorPicker;
+        tool.pickColor({grid: this.grid, event: event});
+    }
+
+    handlePointerUp(event: PointerEvent) {
+        let tool = this.activeTool;
+        if(tool === null) {
+            return;
+        }
+        tool.pointerUp?.({grid: this.grid, event: event});
+    }
+
+    handleToolClick(event: Event, tool: string) {
+        this.activeToolUIElement?.classList.remove("active");
+        if (this.activeTool?.name == tool) {
+            this.activeTool = null;
+            this.activeToolUIElement = null;
+            console.info(`active tool change: tool = ${tool} , element = ${this.activeToolUIElement}`);
+            console.info(`same tool clicked! deactivating`);
+            return;
+        }
+        this.activeTool = this.registry[tool] as GridToolType;
+        let target = event.currentTarget as HTMLInputElement;
+        this.activeToolUIElement = target; 
+        this.activeToolUIElement.classList.add("active");
+        console.info(`active tool change: tool = ${tool} , element = ${this.activeToolUIElement}`)
+    }
+
+    setupEvents() {
+        
+        // UI events
+        constants.colorPicker.addEventListener("change", (event: Event)=>{
+            this.handleColorChange(event);
+        }, false);
+
+        constants.penTool.addEventListener("click", (event: Event)=>{
+            this.handleToolClick(event, "Pen");
+        })
+        constants.eraserTool.addEventListener("click", (event: Event)=>{
+            this.handleToolClick(event, "Eraser");
+        })
+        
+        // canvas events
+        constants.canvas.addEventListener("pointerdown", (event: PointerEvent)=>{
+            this.handlePointerDown(event);
+        });
+
+        constants.canvas.addEventListener("pointermove", (event: PointerEvent) => {
+            this.handlePointerMove(event);
+        });
+
+        constants.canvas.addEventListener("pointerup", (event: PointerEvent) => {
+            this.handlePointerUp(event);
+        });
+
+        constants.canvas.addEventListener("pointercancel", (event) => {
+            this.handlePointerCancel(event);
+        });
+
+
+    }
+
+    handleUndo() {
+        
+    }
+
+    handleRedo() {
+
+    }
+
+    setupTools() {
+        let colorpicker = new ColorPicker();
+        colorpicker.register(this.registry);
+        let eraser = new Eraser();
+        eraser.register(this.registry);
+        let pen = new Pen();
+        pen.register(this.registry);
+    }
+
+
+}
+
+
+export { Editor, Grid, Tool };
