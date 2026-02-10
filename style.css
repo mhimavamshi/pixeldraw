@@ -12,7 +12,25 @@ body, html {
 .ToolsContainer {
     display: flex;
     justify-content: center; 
-    height: 50vh;     
+    gap: 6px;
+}
+.ToolButton {
+    background-color: black;
+    border: none;
+    cursor: pointer;
+}
+.ToolIcon {
+    background-color: grey;
+    padding: 2px;
+    width: 32px;
+    height: 32px;
+}
+
+.ToolButton:hover .ToolIcon {
+    background-color: white;
+}
+.ToolButton.active .ToolIcon {
+    background-color: white;
 }
 canvas {
     image-rendering: pixelated;

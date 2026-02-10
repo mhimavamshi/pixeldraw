@@ -12,8 +12,16 @@
         <canvas id="drawArea" width="256" height="256"></canvas>
     </div>
     <div class="ToolsContainer">
+        <label for="colorPicker" class="ToolButton">
+            <img src="/images/color-picker.png" alt="color picker tool" class="ToolIcon">
+        </label>
         <input type="color" id="colorPicker" name="colorpicked" value="#000000">
-        <img src="/images/color-picker.png" alt="color picker tool" width="30" height="30">
+        <button id="penTool" class="ToolButton">
+            <img src="/images/pen.png" alt="Pen Tool" class="ToolIcon"> 
+        </button>
+        <button id="eraserTool" class="ToolButton">
+            <img src="/images/eraser.png" alt="Eraser Tool" class="ToolIcon">
+        </button>   
     </div>
 </body>
 <script type="module" src="dist/main.js"></script>
