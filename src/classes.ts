@@ -7,12 +7,14 @@ class Pixel {
     x: number;
     y: number;
     empty: boolean;
+    color: string;
 
     constructor(pt: Point, width: number, height: number) {
         this.x = pt.x;
         this.y = pt.y;
         this.width = width;
         this.height = height;
+        this.color = "white";
         this.empty = true;
     }
 
@@ -31,6 +33,7 @@ class Pixel {
     fill(ctx: CanvasRenderingContext2D, color: string = "black") {
         ctx.fillStyle = color; 
         ctx.fillRect(this.x, this.y, this.width, this.height);
+        this.color = color;
         this.empty = false;
     }
     
@@ -38,6 +41,7 @@ class Pixel {
         if(!this.empty) {
             ctx.clearRect(this.x, this.y, this.width, this.height);
             this.draw(ctx);
+            this.color = "white";
             this.empty = true;
         }
     }
@@ -98,6 +102,18 @@ class Grid {
         let pixel = this.pixels[index];
         if(!pixel) return;
         pixel.erase(constants.ctx);
+    }
+
+
+    colorAt(pt: Point) {
+        let whichX = Math.floor(pt.x / constants.PIXEL_WIDTH);
+        let whichY = Math.floor(pt.y / constants.PIXEL_HEIGHT);
+        let index = (whichY * constants.NUM_PIXELS_X) + whichX;
+        console.debug(`whichX = ${whichX}, whichY = ${whichY}, index = ${index}`);
+
+        let pixel = this.pixels[index];
+        if(!pixel) return null;
+        return pixel.color;
     }
 
 }
@@ -181,6 +197,28 @@ class Eraser extends GridTool {
     }
 }
 
+class ColorSelector extends GridTool {
+
+    constructor() {
+        super();
+        this.name = "Color Selector";
+        this.description = "Color Selector Tool";
+    }
+    
+    effect(grid: Grid) {
+        let color = grid.colorAt({x: this.lastX, y: this.lastY});
+        if(color === null) return;
+        grid.color = color;
+    }
+
+    // interesting... another refactor? 
+    // specific: we need to communicate with the UI to update the color of the colorPicker
+    // general: a way for tools to interact with the UI? 
+    // and how would i do something like switch to pen immediately after selection?
+    // and this tool is just read-only tool
+
+}
+
 class ColorPicker extends Tool {
     
     pick: string;
@@ -219,7 +257,7 @@ class Editor {
 
 }
 
-
+// this guy's doing a lot of work!
 class ToolManager {
 
     registry: ToolRegistry;
@@ -298,10 +336,14 @@ class ToolManager {
 
         constants.penTool.addEventListener("click", (event: Event)=>{
             this.handleToolClick(event, "Pen");
-        })
+        });
         constants.eraserTool.addEventListener("click", (event: Event)=>{
             this.handleToolClick(event, "Eraser");
-        })
+        });
+        constants.colorSelectorTool.addEventListener("click", (event: Event)=>{
+            this.handleToolClick(event, "Color Selector"); // maybe we can extract the name from HTML or so? instead of this
+        });
+        // so they become generic single function, and maybe single loop, event handlers over list or single generic element
         
         // canvas events
         constants.canvas.addEventListener("pointerdown", (event: PointerEvent)=>{
@@ -338,6 +380,8 @@ class ToolManager {
         eraser.register(this.registry);
         let pen = new Pen();
         pen.register(this.registry);
+        let colorSelector = new ColorSelector();
+        colorSelector.register(this.registry);
     }
 
 

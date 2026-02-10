@@ -2,6 +2,7 @@ const CANVAS_ID = "#drawArea";
 const COLOR_PICKER_ID = "#colorPicker";
 const PEN_TOOL_ID = "#penTool";
 const ERASER_TOOL_ID = "#eraserTool";
+const COLOR_SELECTOR_TOOL_ID = "#colorSelectorTool";
 
 type CanvasBundle = {
     canvas: HTMLCanvasElement,
@@ -39,6 +40,7 @@ function getHTMLElement(input: ElementInput): HTMLInputElement {
 const colorPicker = getHTMLElement({ id: COLOR_PICKER_ID, description: "colorPicker tool" });
 const penTool = getHTMLElement({ id: PEN_TOOL_ID, description: "penTool tool" });
 const eraserTool = getHTMLElement({ id: ERASER_TOOL_ID, description: "eraserTool tool" });
+const colorSelectorTool = getHTMLElement({ id: COLOR_SELECTOR_TOOL_ID, description: "colorSelectorTool tool" });
 
 const { canvas, ctx } = getCanvasBundle();
 
@@ -56,4 +58,4 @@ console.info(`canvas width: ${canvas.width}, canvas height: ${canvas.height}`);
 console.info(`pixel width: ${PIXEL_WIDTH}, pixel height: ${PIXEL_HEIGHT}`);
 console.info(`total number of pixels: ${NUM_PIXELS}`);
 
-export { CANVAS_ID, NUM_PIXELS, NUM_PIXELS_X, NUM_PIXELS_Y, PIXEL_WIDTH, PIXEL_HEIGHT, canvas, ctx, colorPicker, penTool, eraserTool };
+export { CANVAS_ID, NUM_PIXELS, NUM_PIXELS_X, NUM_PIXELS_Y, PIXEL_WIDTH, PIXEL_HEIGHT, canvas, ctx, colorPicker, penTool, eraserTool, colorSelectorTool };
